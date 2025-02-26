@@ -3,9 +3,10 @@ canvas.width = 800;
 canvas.height = 600;
 const ctx = canvas.getContext("2d");
 
-const player = { x: 400, y: 500, angle: 0, hp: 100, kills: 0, level: 1 };
+const player = { x: 400, y: 500, angle: 0, hp: 100, kills: 0, level: 1, speed: 3 };
 const bullets = [];
 const enemies = [];
+const bosses = [];
 const keys = {};
 let enemySpawnRate = 100;
 let gameOver = false;
@@ -15,7 +16,10 @@ window.addEventListener("keyup", (e) => (keys[e.key] = false));
 
 function spawnEnemy() {
     if (Math.random() * enemySpawnRate < 1) {
-        enemies.push({ x: Math.random() * canvas.width, y: 0, hp: 20 });
+        enemies.push({ x: Math.random() * canvas.width, y: 0, hp: 20, speed: 2 });
+    }
+    if (player.kills % 10 === 0 && player.kills > 0 && bosses.length === 0) {
+        bosses.push({ x: canvas.width / 2, y: 0, hp: 100, speed: 1 });
     }
 }
 
@@ -25,8 +29,8 @@ function update() {
     if (keys["ArrowLeft"]) player.angle -= 0.05;
     if (keys["ArrowRight"]) player.angle += 0.05;
     if (keys["ArrowUp"]) {
-        player.x += Math.cos(player.angle) * 3;
-        player.y += Math.sin(player.angle) * 3;
+        player.x += Math.cos(player.angle) * player.speed;
+        player.y += Math.sin(player.angle) * player.speed;
     }
     if (keys[" "]) {
         bullets.push({ x: player.x, y: player.y, angle: player.angle });
@@ -41,10 +45,18 @@ function update() {
     });
 
     enemies.forEach((e, i) => {
-        e.y += 2;
+        e.y += e.speed;
         if (e.y > canvas.height) {
             player.hp -= 10;
             enemies.splice(i, 1);
+        }
+    });
+
+    bosses.forEach((b, i) => {
+        b.y += b.speed;
+        if (b.y > canvas.height) {
+            player.hp -= 50;
+            bosses.splice(i, 1);
         }
     });
 
@@ -56,7 +68,19 @@ function update() {
                 player.kills++;
                 if (player.kills % 5 === 0) {
                     player.level++;
+                    player.speed += 0.5;
                     enemySpawnRate *= 0.9;
+                }
+            }
+        });
+        
+        bosses.forEach((boss, bi) => {
+            if (Math.hypot(boss.x - b.x, boss.y - b.y) < 30) {
+                boss.hp -= 10;
+                bullets.splice(bi, 1);
+                if (boss.hp <= 0) {
+                    bosses.splice(bi, 1);
+                    player.kills += 5;
                 }
             }
         });
@@ -87,6 +111,11 @@ function draw() {
     ctx.fillStyle = "blue";
     enemies.forEach((e) => {
         ctx.fillRect(e.x - 10, e.y - 10, 20, 20);
+    });
+    
+    ctx.fillStyle = "purple";
+    bosses.forEach((b) => {
+        ctx.fillRect(b.x - 20, b.y - 20, 40, 40);
     });
 
     ctx.fillStyle = "white";
